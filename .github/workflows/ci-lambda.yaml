@@ -1,0 +1,55 @@
+name: TF-lambda-ci
+
+# Trigger on PR to main branch for codes from terraform dir
+on:
+    pull_request:
+        branches: [ "main" ]
+        paths:
+            -   'terraform/*'
+
+jobs:
+    Terraform-Checks:
+        runs-on: ubuntu-latest
+
+        # default dir as TF dir
+        defaults:
+            run:
+                working-directory: terraform
+
+        steps:
+            # Checking out repo's code
+            -   name: Checkout
+                uses: actions/checkout@v4
+
+            # Setup TF for workflows
+            -   name: Setup Terraform
+                uses: hashicorp/setup-terraform@v2
+
+            -   name: Terraform fmt check
+                id: fmt
+                run: terraform fmt -check
+
+            # TF init without configuration of backend
+            -   name: Terraform init
+                run: terraform init -backend=false
+
+            -   name: Terraform Validate
+                id: validate
+                run: terraform validate -no-color
+            
+            # TFLint setup
+            -   uses: terraform-linters/setup-tflint@v3
+                with:
+                    tflint_version: latest
+
+            -   name: Show Version
+                run: tflint --version
+                
+            # Initialized lint to DL rules and configuration
+            -   name: Init TFLint
+                run: tflint --init
+            
+            # Run TFLint to check for issues
+            -   name: Run TFLint
+                run: tflint -f compact
+                
